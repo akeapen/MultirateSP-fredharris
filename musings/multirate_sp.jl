@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.38
+# v0.19.39
 
 using Markdown
 using InteractiveUtils
@@ -20,8 +20,12 @@ using DSP, SignalAnalysis, FFTW, PlutoUI, Plots, LinearAlgebra, Distributed, LaT
 # ╔═╡ 452426fa-cec8-11ee-0821-0dc51c82f902
 md"""### 2.3 Useful Perspectives for Multirate Filters"""
 
-# ╔═╡ 92fdb4ab-c3da-4f48-909d-5eebd4eba496
-md""""""
+# ╔═╡ b3a639c1-8a5c-490f-97e3-44667b1083a9
+begin 
+	# plot attributes 
+	LW = 3  # linewidth
+	sz = (280,250)  # size
+end
 
 # ╔═╡ 3f66ee5c-234e-4979-bff4-c08f115d6bfb
 md"""#### Figure 2.25
@@ -35,32 +39,32 @@ Select ``f_0`` (_center frequency_) $(@bind f0 PlutoUI.Select([0.1, 0.2, 0.4, 0.
 # ╔═╡ 8c75546a-4af3-40fc-80a4-5997b72a41a6
 md"""Scale a complex sinusoid, ``s(t) = \cos(2\pi(f_0\:f_s)\:t)``, with different ratios of signal center frequency to sample frequency """
 
-# ╔═╡ e3b95dc4-d5fd-460e-b0c7-f35b94f6d1d5
-begin 
+# ╔═╡ d4d0779d-6497-400a-86a4-549427ab10df
+function gen_2_25(f0::Float64)
 	# hold the time interval fixed and then scale a complex sinusoid with different ratios of signal center frequency to sample frequency
 	fs = 1  	# sampling frequency [Hz]
-	# f0 = 0.1 	# center frequency 
-	N = 80 		# number of samples
+	N = Int(40*fs) 		# number of samples
 	Ts = 1/fs  	# time interval [s]
-	t = range(0., 79, Int(N*Ts))
+	t = (0:Int(N)-1) .*Ts
 	f = f0*fs 	# frequency
 	ω = 2π*f
 	# generate a sinusoid
-	s0 = cos.(ω.*t)
-	LW = 3 		# linewidth
-	sz = (450,250)
-end;
+	s = cos.(ω.*t)
+	return s, N
+end
 
 # ╔═╡ f1ca88c9-8c10-457a-adea-295dba02466a
 begin
-	# plot(t[1:40], s[1:40], lw=2, label=nothing, line=:stem, marker=:circle, markersize=3)
-	# xlims!(0,40*Ts)
-	plot(1:40, s0[1:40], lw=LW, label=nothing, title=L"f = %$(f0)\times f_s", xlabel="time index", ylabel="amplitude", color=:black, size=sz)
+	s0, N = gen_2_25(f0)
+	plot(1:N, s0, lw=LW, label=nothing, title=L"f = %$(f0)\times f_s", xlabel="time index", ylabel="amplitude", color=:black, size=sz)
 end
 
 # ╔═╡ 578b1b42-eeaf-49e1-8b8c-9b6461d4f7c7
-# plot(range(0.,0.5, Int(N/2)), abs.(fft(s))[1:Int(N/2)], label=nothing, title="f/fₛ = $f0", xlabel="frequency", ylabel="amplitude", lw=2)
-plot(range(0.,1., Int(2N))[1:Int(N)], abs.(fft([s0; zeros(Int(N))]))[1:Int(N)], label=nothing, title=L"f/f_s = %$f0", xlabel="frequency", ylabel="amplitude", lw=LW, color=:black, size=sz)
+begin
+	# zero pad the FFT to smooth it out
+	plot(range(0.,1., Int(10N)), abs.(fft([s0; zeros(9N)])/20), label=nothing, title=L"f/f_s = %$f0", xlabel="frequency", ylabel="amplitude", lw=LW, color=:black, size=sz)
+	xlims!(0,0.5); ylims!(0,1)
+end
 
 # ╔═╡ 1a936297-cfa0-40b5-a51d-62b169278adf
 md"""#### Figure 2.26
@@ -68,17 +72,34 @@ Time and frequency description of four, fixed time interval, fixed input frequen
 
 # ╔═╡ 01105511-977e-4487-b563-90e9cc886cd2
 md""" 
-Select ``f_s`` (_sample rates_) $(@bind f_s PlutoUI.Select([1, 1/2, 1/4, 1/8], default=0.1))
+Select ``f_s`` (_sample rates_) $(@bind fs PlutoUI.Select([1, 1/2, 1/4, 1/8], default=0.1))
 """
 
-# ╔═╡ 34d9efbe-c6b5-4212-b408-8834215c1fb5
-md"_TODO_"
+# ╔═╡ 5fea1baa-ebab-4280-a269-4f4936e973ce
+function gen_2_26(fs::Float64)
+	# fs = 1  	# sampling frequency [Hz]
+	f0 = 0.1 	# center frequency 
+	N = Int(80*fs)		# number of samples
+	Ts = 1/fs  	# time interval [s]
+	t = (0:Int(N)-1) .*Ts
+	# f = f0*fs 	# frequency
+	ω = 2π*f0
+	# generate a sinusoid
+	s = cos.(ω.*t)
+	return s, N, t
+end
 
 # ╔═╡ 386940c9-9408-4950-a948-ac5159cda16d
 begin
-	# plot(t[1:40], s[1:40], lw=2, label=nothing, line=:stem, marker=:circle, markersize=3)
-	# xlims!(0,40*Ts)
-	plot(1:40, s0[1:40], lw=LW, label=nothing, title=L"f = %$(f0)\times f_s", xlabel="time index", ylabel="amplitude", color=:black, size=sz)
+	s1, N1, t1 = gen_2_26(fs::Float64)
+	plot(1:length(t1), s1, lw=LW, label=nothing, title=L"f = f_0 \:%$(fs)", xlabel="time index", ylabel="amplitude", color=:black, size=sz)
+end
+
+# ╔═╡ ff1959e1-a201-47e7-8468-fff1f52da7a1
+begin
+	# zero pad the FFT to smooth it out
+	plot(range(0,1,10N1), abs.(fft([s1; zeros(9N1)])/40), label=nothing, title=L"f/f_s = %$f0", xlabel="frequency", ylabel="amplitude", lw=LW, color=:black, size=sz)
+	xlims!(0,0.5); ylims!(0,1)
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -1601,16 +1622,17 @@ version = "1.4.1+1"
 # ╔═╡ Cell order:
 # ╟─452426fa-cec8-11ee-0821-0dc51c82f902
 # ╠═2a7eacb4-0dd2-4297-8cfd-a03625fe4e4b
-# ╠═92fdb4ab-c3da-4f48-909d-5eebd4eba496
-# ╠═3f66ee5c-234e-4979-bff4-c08f115d6bfb
+# ╠═b3a639c1-8a5c-490f-97e3-44667b1083a9
+# ╟─3f66ee5c-234e-4979-bff4-c08f115d6bfb
 # ╟─1f8a8e8d-5467-447b-b135-38c635f3b217
 # ╟─8c75546a-4af3-40fc-80a4-5997b72a41a6
-# ╠═e3b95dc4-d5fd-460e-b0c7-f35b94f6d1d5
+# ╟─d4d0779d-6497-400a-86a4-549427ab10df
 # ╟─f1ca88c9-8c10-457a-adea-295dba02466a
 # ╟─578b1b42-eeaf-49e1-8b8c-9b6461d4f7c7
 # ╟─1a936297-cfa0-40b5-a51d-62b169278adf
 # ╟─01105511-977e-4487-b563-90e9cc886cd2
-# ╟─34d9efbe-c6b5-4212-b408-8834215c1fb5
-# ╠═386940c9-9408-4950-a948-ac5159cda16d
+# ╟─5fea1baa-ebab-4280-a269-4f4936e973ce
+# ╟─386940c9-9408-4950-a948-ac5159cda16d
+# ╟─ff1959e1-a201-47e7-8468-fff1f52da7a1
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
